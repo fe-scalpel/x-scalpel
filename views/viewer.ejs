@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Scalpel</title>
+    <script src="https://a.alipayobjects.com/g/datavis/g6/1.0.3/index.js"></script>
+    <script src="https://cdn.bootcss.com/jquery/2.2.1/jquery.js"></script>
+    <style>
+      html,body{
+        height:100%;
+        margin:0px;
+        padding:0px;
+      }
+      .btns{
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        z-index:100;
+      }
+      #c2{
+        display: none;
+        padding:50px;
+      }
+      #c2,#c1{
+        background: -webkit-linear-gradient(top, transparent 9px, #f9f9f9 10px), -webkit-linear-gradient(left, transparent 9px, #f9f9f9 10px);
+        background-size: 10px 10px;
+      }
+      li{
+        list-style: none;
+        padding:10px 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="btns">
+      <button id="b1">dependencies</button>
+      <button id="b2">not use</button>
+    </div>
+
+    <div id="c1" ></div>
+    <div id="c2" >
+      <h3>parse error (not js file or not exist) </h3>
+      <ul>
+        <% for(var i=0; i<stats['error'].length; i++) {%>
+          <li><%= stats['error'][i] %></li>
+        <% } %>
+      </ul>
+      <h3>file</h3>
+      <ul>
+        <% for(var i=0; i<stats['file'].length; i++) {%>
+          <li><%= stats['file'][i] %></li>
+        <% } %>
+      </ul>
+      <h3>module</h3>
+      <ul>
+        <% for(var i=0; i<stats['module'].length; i++) {%>
+          <li><%= stats['module'][i] %></li>
+        <% } %>
+      </ul>
+    </div>
+    
+    <script>
+      $('#b1').click(function(){
+        $('#c1').show();
+        $('#c2').hide();
+      })
+
+      $('#b2').click(function(){
+        $('#c1').hide();
+        $('#c2').show();
+      })
+
+      var data = <%- chartData %>;
+      var Util = G6.Util;
+      var root = '<%- root %>';
+        // 准备布局配置
+        var layoutCfg = {
+          "direction": "LR",
+          "nodeSep": 20,
+          "nodeSize": 20,
+          "rankSep": 200
+        };
+        // 自定义树节点
+        var DEFAULT_NODE_SIZE = 5;
+        G6.registNode('treeNode', {
+          draw(cfg, group) {
+            var origin = cfg.origin;
+            var r = layoutCfg.nodeSize ? layoutCfg.nodeSize / 2 : DEFAULT_NODE_SIZE;
+            var shapeCfg = {
+              attrs: {
+                x: cfg.x,
+                y: cfg.y,
+                r: r,
+                stroke: '#003380',
+                fill: 'white',
+                fillOpacity: 1,
+              },
+            };
+            if (origin.children && origin.children.length) {
+              shapeCfg.class = origin.isCollapsed ? 'spreadoutButton' : 'collapseButton';
+              shapeCfg.attrs.fill = '#044A9A';
+              shapeCfg.attrs.stroke = '#003380';
+              shapeCfg.attrs.fillOpacity = 0.4;
+            }
+            if (origin.root) {
+              shapeCfg.attrs.fill = '#044A9A';
+              shapeCfg.attrs.stroke = '#003380';
+              shapeCfg.attrs.fillOpacity = 0.7;
+            }
+            shapeCfg.attrStash = Util.mix({}, shapeCfg.attrs);
+            return group.addShape('circle', shapeCfg);
+          },
+          afterDraw(cfg, group) {
+            var origin = cfg.origin;
+            var r = layoutCfg.nodeSize ? layoutCfg.nodeSize / 2 : DEFAULT_NODE_SIZE;
+            var align = origin.align;
+            var labelAttrs = {
+              text: origin.source && origin.source.replace(root,''),
+              fill: '#666',
+              textBaseline: 'middle',
+              fontSize: 20,
+              x: cfg.x + r + DEFAULT_NODE_SIZE,
+              y: cfg.y,
+              textAlign: 'left',
+            };
+            if (align === 'R') {
+              Util.mix(labelAttrs, {
+                x: cfg.x - r - DEFAULT_NODE_SIZE,
+                y: cfg.y,
+                textAlign: 'right',
+              });
+            } else if (align === 'T' || align === 'CH') {
+              Util.mix(labelAttrs, {
+                x: cfg.x,
+                y: cfg.y + r + DEFAULT_NODE_SIZE,
+                textAlign: 'right',
+                rotate: -Math.PI / 2,
+              });
+            } else if (align === 'B') {
+              Util.mix(labelAttrs, {
+                x: cfg.x,
+                y: cfg.y - r - DEFAULT_NODE_SIZE,
+                textAlign: 'left',
+                rotate: -Math.PI / 2,
+              });
+            }
+            var label = group.addShape('text', {
+              attrs: labelAttrs,
+            });
+            return label;
+          }
+        });
+        // 生成树图实例
+        var tree = new G6.Tree({
+          id: 'c1',                            // 容器ID
+          height: 800,                         // 画布高
+          fitView: 'autoZoom',                 // 自动缩放
+          layoutFn: G6.Layout.LayeredTidyTree, // 布局类型
+          layoutCfg: layoutCfg,                // 布局配置
+          showButton: false
+        });
+        // 加载数据
+        tree.source(data);
+        tree.node().shape('treeNode');
+        tree.edge()
+          .shape('smooth')
+          .style({
+          stroke: '#A9BCD3'  
+        });
+        // 渲染树图
+        tree.render();
+        // tree.setItemActived(tree.node(), false);
+        // 添加事件
+        tree.on('mouseenter', function(ev){
+          var shape = ev.shape;
+          if (shape && shape.hasClass('Button')) {
+            shape.attr('fillOpacity', 0.2);
+            shape.attr('strokeOpacity', 0.8);
+            tree.refresh();
+          }
+        });
+        tree.on('mouseleave', function(ev){
+          var shape = ev.shape;
+          var attrStash;
+          if (shape && shape.hasClass('Button')) {
+            attrStash = shape.get('attrStash');
+            shape.attr(attrStash);
+            tree.refresh();
+          }
+        });
+    </script>
+  </body>
+</html>
