@@ -1,6 +1,8 @@
 ### 通过入口文件分析项目依赖，并可视化展现
 ### 检测项目中可能废弃的文件或者依赖
 
+https://www.npmjs.com/package/x-scalpel
+
 
 ![](https://img.alicdn.com/tfs/TB1Bpm8RpXXXXcHXpXXXXXXXXXX-1393-599.png)
 
@@ -26,3 +28,4 @@ var config = {
 scalpel(config);
 
 ```
+
