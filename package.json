@@ -1,6 +1,6 @@
 {
   "name": "x-scalpel",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,6 +11,10 @@
     "views",
     "index.js"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fe-scalpel/x-scalpel"
+  },
   "author": "zhangking",
   "license": "MIT",
   "devDependencies": {},
